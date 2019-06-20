@@ -49,6 +49,7 @@ $ cppcheck --enable=all degridder.cu
 $ cppcheck --enable=all unit_testing.cpp
 ```
 To execute unit testing, execute the following (also assumes appropriate *build* folder):
+**UNIT TESTING DATA TOO LARGE FOR GITHUB, THIS IS CAN BE FOUND [HERE](https://drive.google.com/open?id=12IXZBMWRvkJ15GF1OBZiZJXkqW43sUoI)** 
 ```bash
 $ ./tests
 ````

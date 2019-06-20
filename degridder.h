@@ -50,6 +50,7 @@ extern "C" {
 		int grid_size;
 		double cell_size;
 		bool right_ascension;
+		bool force_zero_w_term;
 		double frequency_hz;
 		int kernel_size;
 		int oversampling;
@@ -59,12 +60,17 @@ extern "C" {
 		char *grid_imag_source_file;
 		char *kernel_real_source_file;
 		char *kernel_imag_source_file;
+		char *kernel_support_file;
 		char *visibility_source_file;
 		char *visibility_dest_file;
 		int gpu_max_threads_per_block;
+		int gpu_max_threads_per_block_dimension;
 		bool time_degridding;
 		bool conv_correction_and_fft;
 		bool conv_correction_performed;
+		int num_wproj_kernels;
+		double max_w;
+		double w_scale;
 	} Config;
 
 	typedef struct Visibility {
@@ -86,26 +92,33 @@ extern "C" {
 
 	void save_visibilities(Config *config, Visibility *vis_uvw, Complex *vis_intensity);
 
-	void execute_degridding(Config *config, Complex *grid, Visibility *vis_uvw, Complex *vis_intensities,
-		Complex *kernel, int num_visibilities);
+	void execute_degridding(Config *config, Complex *grid, 
+		Visibility *vis_uvw, Complex *vis_intensities, int num_visibilities, double2 *prolate,
+		Complex *kernel, int2 *kernel_supports, int num_kernel_samples);
 
-	__global__ void degridding(const double2 *grid, const double2 *kernel, const double3 *vis_uvw,
-		double2 *vis, const int num_vis, const int oversampling, const int kernel_size,
-		const int grid_size, const double uv_scale);
+	__global__ void execute_convolution_correction(double2 *grid, const double2 *prolate, const int grid_size);
+
+	__global__ void degridding(const double2 *grid, const double2 *kernel, const int2 *supports,
+		const double3 *vis_uvw, double2 *vis, const int num_vis, const int oversampling,
+		const int grid_size, const double uv_scale, const double w_scale);
 
 	__device__ double2 complex_mult(const double2 z1, const double2 z2);
 
-	bool load_kernel(Config *config, Complex *kernel);
+	bool load_kernel(Config *config, Complex *kernel, int2 *kernel_supports);
+
+	int read_kernel_supports(Config *config, int2 *kernel_supports);
 
 	double calc_spheroidal_sample(double nu);
 
-	void execute_convolution_correction(Config *config, Complex *grid);
+	void execute_convolution_correction_cpu(Complex *grid, double grid_size, double cell_size);
 
 	void execute_CUDA_FFT(Config *config, double2 *grid);
 
+	void create_1D_half_prolate(double2 *prolate, int grid_size, double cell_size);
+
 	__global__ void fftshift_2D(double2 *grid, const int width);
 
-	void clean_up(Complex **grid, Visibility **visibilities, Complex **vis_intensities, Complex **kernel);
+	void clean_up(Complex **grid, Visibility **visibilities, Complex **vis_intensities, Complex **kernel, int2 **kernel_supports, double2 **prolate);
 
 	static void check_cuda_error_aux(const char *file, unsigned line, const char *statement, cudaError_t err);
 
@@ -115,7 +128,10 @@ extern "C" {
 
 	void unit_test_init_config(Config *config);
 
-	double unit_test_generate_approximate_visibilities(void);
+	double unit_test_output_visibilities(Config *config, Visibility *vis_uvw, Complex *vis_intensities);
+
+	double unit_test_gpu_convolution_correction(Complex *grid, int grid_size, double cell_size);
+
 
 #endif /* DEGRIDDER_H_ */
 
