@@ -40,11 +40,58 @@ extern "C" {
 #include <device_launch_parameters.h>
 #include <cufft.h>
 
+	#define SINGLE_PRECISION 0
+
 	#define C 299792458.0
 
 	#define CUDA_CHECK_RETURN(value) check_cuda_error_aux(__FILE__,__LINE__, #value, value)
 
 	#define CUFFT_SAFE_CALL(err) cufft_safe_call(err, __FILE__, __LINE__)
+
+	#ifndef PRECISION
+		#if SINGLE_PRECISION
+			#define PRECISION float
+			#define PRECISION2 float2
+			#define PRECISION3 float3
+			#define PRECISION4 float4
+			#define CUFFT_P2P CUFFT_C2C
+		#else
+			#define PRECISION double
+			#define PRECISION2 double2
+			#define PRECISION3 double3
+			#define PRECISION4 double4
+			#define CUFFT_P2P CUFFT_Z2Z
+		#endif
+	#endif
+
+	// Define function macros
+	#if SINGLE_PRECISION
+		#define SIN(x) sinf(x)
+		#define COS(x) cosf(x)
+		#define ABS(x) fabsf(x)
+		#define SQRT(x) sqrtf(x)
+		#define ROUND(x) roundf(x)
+		#define CEIL(x) ceilf(x)
+		#define FLOOR(x) floorf(x)
+		#define POW(x, y) powf(x, y)
+		#define MAKE_PRECISION2(x,y) make_float2(x,y)
+		#define MAKE_PRECISION3(x,y,z) make_float3(x,y,z)
+		#define MAKE_PRECISION4(x,y,z,w) make_float4(x,y,z,w)
+		#define CUFFT_EXECUTE_P2P(a,b,c,d) cufftExecC2C(a,b,c,d)
+	#else
+		#define SIN(x) sin(x)
+		#define COS(x) cos(x)
+		#define ABS(x) fabs(x)
+		#define SQRT(x) sqrt(x)
+		#define ROUND(x) round(x)
+		#define FLOOR(x) floor(x)
+		#define CEIL(x) ceil(x)
+		#define POW(x, y) pow(x, y)
+		#define MAKE_PRECISION2(x,y) make_double2(x,y)
+		#define MAKE_PRECISION3(x,y,z) make_double3(x,y,z)
+		#define MAKE_PRECISION4(x,y,z,w) make_double4(x,y,z,w)
+		#define CUFFT_EXECUTE_P2P(a,b,c,d) cufftExecZ2Z(a,b,c,d)
+	#endif
 
 	typedef struct Config {
 		int grid_size;
@@ -74,14 +121,14 @@ extern "C" {
 	} Config;
 
 	typedef struct Visibility {
-		double u;
-		double v;
-		double w;
+		PRECISION u;
+		PRECISION v;
+		PRECISION w;
 	} Visibility;
 
 	typedef struct Complex {
-		double real;
-		double imag;
+		PRECISION real;
+		PRECISION imag;
 	} Complex;
 
 	void init_config(Config *config);
@@ -93,16 +140,17 @@ extern "C" {
 	void save_visibilities(Config *config, Visibility *vis_uvw, Complex *vis_intensity);
 
 	void execute_degridding(Config *config, Complex *grid, 
-		Visibility *vis_uvw, Complex *vis_intensities, int num_visibilities, double2 *prolate,
+		Visibility *vis_uvw, Complex *vis_intensities, int num_visibilities, PRECISION2 *prolate,
 		Complex *kernel, int2 *kernel_supports, int num_kernel_samples);
 
-	__global__ void execute_convolution_correction(double2 *grid, const double2 *prolate, const int grid_size);
+	__global__ void execute_convolution_correction(PRECISION2 *grid, const PRECISION2 *prolate,
+ 		const int grid_size);
 
-	__global__ void degridding(const double2 *grid, const double2 *kernel, const int2 *supports,
-		const double3 *vis_uvw, double2 *vis, const int num_vis, const int oversampling,
+	__global__ void degridding(const PRECISION2 *grid, const PRECISION2 *kernel, const int2 *supports,
+		const PRECISION3 *vis_uvw, PRECISION2 *vis, const int num_vis, const int oversampling,
 		const int grid_size, const double uv_scale, const double w_scale);
 
-	__device__ double2 complex_mult(const double2 z1, const double2 z2);
+	__device__ PRECISION2 complex_mult(const PRECISION2 z1, const PRECISION2 z2);
 
 	bool load_kernel(Config *config, Complex *kernel, int2 *kernel_supports);
 
@@ -112,13 +160,14 @@ extern "C" {
 
 	void execute_convolution_correction_cpu(Complex *grid, double grid_size, double cell_size);
 
-	void execute_CUDA_FFT(Config *config, double2 *grid);
+	void execute_CUDA_FFT(Config *config, PRECISION2 *grid);
 
-	void create_1D_half_prolate(double2 *prolate, int grid_size, double cell_size);
+	void create_1D_half_prolate(PRECISION2 *prolate, int grid_size, double cell_size);
 
-	__global__ void fftshift_2D(double2 *grid, const int width);
+	__global__ void fftshift_2D(PRECISION2 *grid, const int width);
 
-	void clean_up(Complex **grid, Visibility **visibilities, Complex **vis_intensities, Complex **kernel, int2 **kernel_supports, double2 **prolate);
+	void clean_up(Complex **grid, Visibility **visibilities, Complex **vis_intensities, 
+		Complex **kernel, int2 **kernel_supports, PRECISION2 **prolate);
 
 	static void check_cuda_error_aux(const char *file, unsigned line, const char *statement, cudaError_t err);
 
@@ -128,10 +177,9 @@ extern "C" {
 
 	void unit_test_init_config(Config *config);
 
-	double unit_test_output_visibilities(Config *config, Visibility *vis_uvw, Complex *vis_intensities);
+	PRECISION unit_test_output_visibilities(Config *config, Visibility *vis_uvw, Complex *vis_intensities);
 
-	double unit_test_gpu_convolution_correction(Complex *grid, int grid_size, double cell_size);
-
+	PRECISION unit_test_gpu_convolution_correction(Complex *grid, int grid_size, double cell_size);
 
 #endif /* DEGRIDDER_H_ */
 

@@ -41,8 +41,6 @@ int main(int argc, char **argv)
 	init_config(&config);
 	
 	// Prepare required memory
-	
-	
 	int2 *kernel_supports = (int2*) calloc(config.num_wproj_kernels,sizeof(int2));
     
     if(kernel_supports == NULL)
@@ -51,7 +49,6 @@ int main(int argc, char **argv)
 		clean_up(NULL, NULL, NULL, NULL, &kernel_supports, NULL);
 		return EXIT_FAILURE;
     }
-
 
 	int total_samples_needed = read_kernel_supports(&config, kernel_supports);
 	printf("\n TOTAL KERNEL SIZE IS %d\n ",total_samples_needed);
@@ -102,7 +99,7 @@ int main(int argc, char **argv)
 	printf(">>> Creating seperable 1D prolate and squared l and m...\n");
 	// creating 1d seperable prolate spheroidal, stored in first component
 	// in second component store one of the l and m values
-	double2 *prolate = (double2*) calloc(config.grid_size / 2, sizeof(double2));
+	PRECISION2 *prolate = (PRECISION2*) calloc(config.grid_size / 2, sizeof(PRECISION2));
 	create_1D_half_prolate(prolate, config.grid_size, config.cell_size);
 	if(!prolate)
 	{
@@ -111,7 +108,6 @@ int main(int argc, char **argv)
 	}
 
 	printf("All data loaded in...\n");
-
 
 	// Perform degridding to obtain extracted visibility intensities from grid
 	execute_degridding(&config, grid, vis_uvw, vis_intensities, 
