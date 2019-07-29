@@ -53,7 +53,7 @@
 	unit_test_init_config(&config);
 	int grid_size = config.grid_size;
 	Complex *grid = (Complex*) calloc(grid_size * grid_size, sizeof(Complex));
-	double threshold = 1e-5; // 0.00001
+	PRECISION threshold = 1e-5; // 0.00001
 	printf("UNIT TEST >>> CONVOLUTION CORRECTION ON GPU....\n\n");
   	
  	if(grid == NULL)
@@ -66,7 +66,7 @@
  		grid[i].imag = 0.0;
  	}
 
-    double rmse = unit_test_gpu_convolution_correction(grid, grid_size, config.cell_size);
+    PRECISION rmse = unit_test_gpu_convolution_correction(grid, grid_size, config.cell_size);
 	
 	if(rmse > threshold)
 		printf("UNIT TEST >>> FAILED, RMSE of %f BELOW THRESHOLD %f...\n\n", rmse, threshold);
@@ -83,7 +83,6 @@
 		clean_up(NULL, NULL, NULL, NULL, &kernel_supports, NULL);
 		return EXIT_FAILURE;
     }
-
 
 	int total_samples_needed = read_kernel_supports(&config, kernel_supports);
 	printf("UPDATE >>> TOTAL KERNEL SAMPLES READ IN %d\n ",total_samples_needed);
@@ -133,7 +132,7 @@
 	printf(">>> Creating seperable 1D prolate and squared l and m...\n");
 	// creating 1d seperable prolate spheroidal, stored in first component
 	// in second component store one of the l and m values
-	double2 *prolate = (double2*) calloc(config.grid_size / 2, sizeof(double2));
+	PRECISION2 *prolate = (PRECISION2*) calloc(config.grid_size / 2, sizeof(PRECISION2));
 	create_1D_half_prolate(prolate, config.grid_size, config.cell_size);
 	if(!prolate)
 	{
@@ -148,7 +147,7 @@
 	execute_degridding(&config, grid, vis_uvw, vis_intensities, 
 		config.num_visibilities, prolate, kernel, kernel_supports, total_samples_needed);
 	 
-    double maxDiff = unit_test_output_visibilities(&config, vis_uvw, vis_intensities);
+    PRECISION maxDiff = unit_test_output_visibilities(&config, vis_uvw, vis_intensities);
 
     if(maxDiff > threshold)
 		printf("UNIT TEST >>> FAILED, MAX DIFFERENCE OF VISIBILITY %f\n BELOW THRESHOLD %f...\n\n", rmse, threshold);
